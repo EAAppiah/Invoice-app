@@ -181,81 +181,186 @@ const InvoiceGenerator = () => {
     document.head.removeChild(style);
   };
 
-  // Save invoice as PDF
-  const saveInvoice = async () => {
-    // Enter preview mode if not already in it
-    if (!previewMode) {
-      setPreviewMode(true);
-      // Small delay to ensure preview mode is rendered
-      await new Promise(resolve => setTimeout(resolve, 100));
+// Save invoice as PDF with simplified styling
+const saveInvoice = async () => {
+  // Enter preview mode if not already in it
+  if (!previewMode) {
+    setPreviewMode(true);
+    // Increased delay to ensure preview mode is fully rendered
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  const invoiceElement = invoiceRef.current;
+  if (!invoiceElement) return false;
+
+  try {
+    // Create container for sanitized version
+    const sanitizedContainer = document.createElement('div');
+    sanitizedContainer.style.position = 'absolute';
+    sanitizedContainer.style.left = '-9999px';
+    sanitizedContainer.style.width = '794px'; // A4 width in pixels
+    sanitizedContainer.style.backgroundColor = '#ffffff';
+    sanitizedContainer.style.padding = '30px';
+    sanitizedContainer.style.fontFamily = 'Arial, sans-serif';
+    sanitizedContainer.style.color = '#000000';
+    document.body.appendChild(sanitizedContainer);
+
+    // 1. Get original content HTML
+    const originalHTML = invoiceElement.innerHTML;
+
+    // 2. Create simplified HTML with only basic styling attributes
+    let simplifiedHTML = originalHTML;
+    
+    // 3. Remove all style tags completely
+    simplifiedHTML = simplifiedHTML.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    
+    // 4. Set the simplified HTML
+    sanitizedContainer.innerHTML = simplifiedHTML;
+    
+    // 5. Apply safe basic styles directly to elements
+    const applyBasicStyles = (element) => {
+      if (!element) return;
+      
+      // Set safe colors on all elements
+      element.style.color = '#000000';
+      element.style.backgroundColor = 'transparent';
+      element.style.borderColor = '#cccccc';
+      
+      // Remove any references to oklch
+      const allStyles = element.getAttribute('style') || '';
+      if (allStyles.includes('oklch')) {
+        const safeStyles = allStyles.replace(/oklch\([^)]+\)/g, '#000000');
+        element.setAttribute('style', safeStyles);
+      }
+      
+      // Process children recursively
+      Array.from(element.children).forEach(child => applyBasicStyles(child));
+    };
+    
+    applyBasicStyles(sanitizedContainer);
+    
+    // 6. Remove action buttons and non-printable elements
+    const actionButtons = sanitizedContainer.querySelectorAll('.no-print');
+    actionButtons.forEach(button => button.remove());
+    
+    // 7. Ensure logo fits properly if present
+    const logo = sanitizedContainer.querySelector("img[alt='Company logo']");
+    if (logo) {
+      logo.style.maxHeight = '60px';
+      logo.style.maxWidth = '120px';
+      logo.style.objectFit = 'contain';
     }
-
-    const invoiceElement = invoiceRef.current;
-    if (!invoiceElement) return;
-
-    try {
-      // Create a clone of the invoice with appropriate styling
-      const invoiceClone = invoiceElement.cloneNode(true);
-      invoiceClone.style.width = "794px"; // A4 width
-      invoiceClone.style.padding = "30px"; // Reduced padding
-      invoiceClone.style.backgroundColor = "white";
-      invoiceClone.style.fontSize = "14px"; // Ensure consistent font size
-      document.body.appendChild(invoiceClone);
-
-      // Remove action buttons from the clone
-      const actionButtons = invoiceClone.querySelectorAll(".no-print");
-      actionButtons.forEach(button => button.remove());
-
-      // Ensure logo fits properly
-      const logo = invoiceClone.querySelector("img[alt='Company logo']");
-      if (logo) {
-        logo.style.maxHeight = "60px";
-        logo.style.maxWidth = "120px";
-        logo.style.objectFit = "contain";
-      }
-
-      // Make total section more compact
-      const totalSection = invoiceClone.querySelector(".w-48");
-      if (totalSection) {
-        totalSection.style.width = "200px";
-        totalSection.style.fontSize = "0.9rem";
-      }
-
-      // Render to canvas
-      const canvas = await html2canvas(invoiceClone, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        windowWidth: 794, // Match A4 width
-        windowHeight: 1123 // Match A4 height (approximately)
+    
+    // 8. Adjust specific elements
+    const totalSection = sanitizedContainer.querySelector('.w-48');
+    if (totalSection) {
+      totalSection.style.width = '200px';
+      totalSection.style.fontSize = '14px';
+    }
+    
+    // 9. Apply direct styling to common elements
+    const headings = sanitizedContainer.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach(heading => {
+      heading.style.color = '#000000';
+      heading.style.fontWeight = 'bold';
+      heading.style.margin = '10px 0';
+    });
+    
+    const paragraphs = sanitizedContainer.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      p.style.margin = '5px 0';
+    });
+    
+    const tables = sanitizedContainer.querySelectorAll('table');
+    tables.forEach(table => {
+      table.style.borderCollapse = 'collapse';
+      table.style.width = '100%';
+      
+      const cells = table.querySelectorAll('td, th');
+      cells.forEach(cell => {
+        cell.style.border = '1px solid #cccccc';
+        cell.style.padding = '8px';
+        cell.style.textAlign = cell.tagName === 'TH' ? 'center' : 'left';
       });
       
-      // Remove the clone
-      document.body.removeChild(invoiceClone);
-
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
+      const headerCells = table.querySelectorAll('th');
+      headerCells.forEach(th => {
+        th.style.backgroundColor = '#f2f2f2';
+        th.style.fontWeight = 'bold';
       });
+    });
+    
+    // 10. Wait a bit for all styling to apply
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // 11. Use html2canvas with minimal options
+    const canvas = await html2canvas(sanitizedContainer, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      removeContainer: false // Don't let html2canvas handle removal
+    });
+    
+    // 12. Remove the sanitized container
+    document.body.removeChild(sanitizedContainer);
+    
+    // 13. Create PDF from canvas
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true
+    });
+    
+    const imgWidth = 210; // A4 width in mm
+    const pageHeight = 297; // A4 height in mm
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    
+    // Add image to first page
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
+    
+    // Handle multi-page if needed
+    if (imgHeight > pageHeight) {
+      let remainingHeight = imgHeight;
+      let position = 0;
       
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = Math.min(297, canvas.height * imgWidth / canvas.width); // Ensure it doesn't exceed A4 height
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`Invoice-${invoiceInfo.invoiceNumber}.pdf`);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("There was an error generating the PDF. Please try again.");
+      // Already added first page, now add subsequent pages
+      while (remainingHeight > pageHeight) {
+        position -= pageHeight;
+        remainingHeight -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      }
     }
-  };
+    
+    // 14. Save PDF
+    pdf.save(`Invoice-${invoiceInfo.invoiceNumber}.pdf`);
+    
+    return true;
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    alert("There was an error generating the PDF. Please try again.");
+    return false;
+  }
+};
 
-  // Download invoice as PDF
-  const downloadInvoice = async () => {
-    await saveInvoice();
-  };
+// Download invoice as PDF
+const downloadInvoice = async () => {
+  // Create a loading state if needed
+  // setIsGeneratingPDF(true);
+  
+  const success = await saveInvoice();
+  
+  // Reset loading state
+  // setIsGeneratingPDF(false);
+  
+  if (success) {
+    console.log("PDF downloaded successfully");
+  }
+};
 
   // Add custom print styles when component mounts
   useEffect(() => {
