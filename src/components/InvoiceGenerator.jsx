@@ -37,12 +37,12 @@ const InvoiceGenerator = () => {
   });
 
   const salesUnits = [
-    "each",
-    "hour",
-    "day",
-    "week",
-    "month",
-    "year",
+    // "each",
+    // "hour",
+    // "day",
+    // "week",
+    // "month",
+    // "year",
     "kg",
     "lb",
     "oz",
@@ -51,8 +51,8 @@ const InvoiceGenerator = () => {
     "gallon",
     "m",
     "ft",
-    "sq.ft",
-    "sq.m",
+    // "sq.ft",
+    // "sq.m",
     "mg",        // milligram
     "mcg",       // microgram
     "ml",        // milliliter
@@ -61,16 +61,19 @@ const InvoiceGenerator = () => {
     "capsule",
     "vial",
     "ampoule",
-    "patch",
+    // "patch",
     "drop",
     "dose",
     "syringe",
     "blister pack",
     "bottle",
     "tube",
-    "suppository",
-    "inhaler",
-    "cartridge",
+    "box",
+    "pack",
+    "carton",
+    // "suppository",
+    // "inhaler",
+    // "cartridge",
     "kit",
     "strip"
   ];
