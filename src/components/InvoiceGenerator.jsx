@@ -16,6 +16,8 @@ const InvoiceGenerator = () => {
     logo: null,
     currency: "$",
     tax: 10,
+    discount: 0,
+    discountType:"percentage",
   });
 
   // State for business details
@@ -34,13 +36,55 @@ const InvoiceGenerator = () => {
     address: "456 Client Ave, City, State, ZIP",
   });
 
+  const salesUnits = [
+    "each",
+    "hour",
+    "day",
+    "week",
+    "month",
+    "year",
+    "kg",
+    "lb",
+    "oz",
+    "g",
+    "liter",
+    "gallon",
+    "m",
+    "ft",
+    "sq.ft",
+    "sq.m",
+    "mg",        // milligram
+    "mcg",       // microgram
+    "ml",        // milliliter
+    "IU",        // international unit
+    "tablet",
+    "capsule",
+    "vial",
+    "ampoule",
+    "patch",
+    "drop",
+    "dose",
+    "syringe",
+    "blister pack",
+    "bottle",
+    "tube",
+    "suppository",
+    "inhaler",
+    "cartridge",
+    "kit",
+    "strip"
+  ];
+  
+  
   // State for invoice items
   const [items, setItems] = useState([
     {
       id: 1,
       description: "Service/Product 1",
       quantity: 1,
+      unit: "each",
       rate: 100,
+      discount: 0,
       amount: 100,
     },
   ]);
@@ -116,8 +160,9 @@ const InvoiceGenerator = () => {
           const updatedItem = { ...item, [field]: value };
 
           // Auto-calculate amount when quantity or rate changes
-          if (field === "quantity" || field === "rate") {
-            updatedItem.amount = updatedItem.quantity * updatedItem.rate;
+          if (field === "quantity" || field === "rate" || field === "discount") {
+            const subtotal = updatedItem.quantity * updatedItem.rate;
+            updatedItem.amount = subtotal - (subtotal * updatedItem.discount / 100);
           }
 
           return updatedItem;
@@ -491,38 +536,50 @@ const downloadInvoice = async () => {
               <h2 className="text-md font-medium text-gray-900 mb-2">Items</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full border border-gray-200">
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th scope="col" className="py-2 px-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
-                        Description
-                      </th>
-                      <th scope="col" className="py-2 px-2 text-center text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
-                        Qty
-                      </th>
-                      <th scope="col" className="py-2 px-2 text-right text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
-                        Rate
-                      </th>
-                      <th scope="col" className="py-2 px-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
-                        Amount
-                      </th>
-                    </tr>
-                  </thead>
+                <thead className="bg-gray-100">
+  <tr>
+    <th scope="col" className="py-2 px-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
+      Description
+    </th>
+    <th scope="col" className="py-2 px-2 text-center text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
+      Qty
+    </th>
+    <th scope="col" className="py-2 px-2 text-center text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
+      Unit
+    </th>
+    <th scope="col" className="py-2 px-2 text-right text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
+      Rate
+    </th>
+    <th scope="col" className="py-2 px-2 text-right text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
+      Disc.
+    </th>
+    <th scope="col" className="py-2 px-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider border-b">
+      Amount
+    </th>
+  </tr>
+</thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {items.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="py-2 px-3 text-sm text-gray-900 border-r">
-                          {item.description}
-                        </td>
-                        <td className="py-2 px-2 text-sm text-gray-900 text-center border-r">
-                          {item.quantity}
-                        </td>
-                        <td className="py-2 px-2 text-sm text-gray-900 text-right border-r">
-                          {invoiceInfo.currency} {item.rate.toFixed(2)}
-                        </td>
-                        <td className="py-2 px-3 text-sm text-gray-900 text-right">
-                          {invoiceInfo.currency} {item.amount.toFixed(2)}
-                        </td>
-                      </tr>
+                      <td className="py-2 px-3 text-sm text-gray-900 border-r">
+                        {item.description}
+                      </td>
+                      <td className="py-2 px-2 text-sm text-gray-900 text-center border-r">
+                        {item.quantity}
+                      </td>
+                      <td className="py-2 px-2 text-sm text-gray-900 text-center border-r">
+                        {item.unit}
+                      </td>
+                      <td className="py-2 px-2 text-sm text-gray-900 text-right border-r">
+                        {invoiceInfo.currency} {item.rate.toFixed(2)}
+                      </td>
+                      <td className="py-2 px-2 text-sm text-gray-900 text-right border-r">
+                        {item.discount > 0 ? `${item.discount}%` : '-'}
+                      </td>
+                      <td className="py-2 px-3 text-sm text-gray-900 text-right">
+                        {invoiceInfo.currency} {item.amount.toFixed(2)}
+                      </td>
+                    </tr>
                     ))}
                   </tbody>
                 </table>
@@ -816,126 +873,162 @@ const downloadInvoice = async () => {
             <div className="mb-8">
               <h2 className="text-lg font-medium text-gray-900 mb-3">Items</h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Description
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Quantity
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Rate
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Amount
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider no-print"
-                      >
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-									<tbody className="bg-white divide-y divide-gray-200">
-                  {items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="text"
-                          value={item.description}
-                          onChange={(e) =>
-                            updateItem(item.id, "description", e.target.value)
-                          }
-                          onFocus={handleFocus}
-                          placeholder="Item description"
-                          className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItem(
-                              item.id,
-                              "quantity",
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                          className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-gray-500 mr-1">
-                            {invoiceInfo.currency}
-                          </span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.rate}
-                            onChange={(e) =>
-                              updateItem(
-                                item.id,
-                                "rate",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-                          />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <span className="text-gray-500 mr-1">
-                            {invoiceInfo.currency}
-                          </span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.amount}
-                            onChange={(e) =>
-                              updateItem(
-                                item.id,
-                                "amount",
-                                parseFloat(e.target.value) || 0
-                              )
-                            }
-                            className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
-                            readOnly
-                          />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right no-print">
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <table className="min-w-full divide-y divide-gray-200">
+  <thead className="bg-gray-50">
+    <tr>
+      <th
+        scope="col"
+        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
+      >
+        Description
+      </th>
+      <th
+        scope="col"
+        className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-12"
+      >
+        Quantity
+      </th>
+      <th
+        scope="col"
+        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6"
+      >
+        Unit
+      </th>
+      <th
+        scope="col"
+        className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20"
+      >
+        Rate
+      </th>
+      <th
+        scope="col"
+        className="px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16"
+      >
+        Disc %
+      </th>
+      <th
+        scope="col"
+        className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24"
+      >
+        Amount
+        <span className="text-black mr-1 text-xs">
+              ({invoiceInfo.currency})
+            </span>
+      </th>
+      <th
+        scope="col"
+        className="px-1 py-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-10 no-print"
+      >
+        <span className="sr-only">Actions</span>
+      </th>
+    </tr>
+  </thead>
+  <tbody className="bg-white divide-y divide-gray-200">
+    {items.map((item) => (
+      <tr key={item.id}>
+        <td className="px-6 py-3 whitespace-normal align-left">
+          <input
+            type="text"
+            value={item.description}
+            onChange={(e) =>
+              updateItem(item.id, "description", e.target.value)
+            }
+            onFocus={handleFocus}
+            placeholder="Item description"
+            className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+          />
+        </td>
+        <td className="px-3 py-2 whitespace-nowrap">
+          <input
+            type="number"
+            min="1"
+            value={item.quantity}
+            onChange={(e) =>
+              updateItem(
+                item.id,
+                "quantity",
+                parseInt(e.target.value) || 0
+              )
+            }
+            className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 text-center"
+          />
+        </td>
+        <td className="px-4 py-3 whitespace-nowrap">
+          <select
+            value={item.unit}
+            onChange={(e) =>
+              updateItem(item.id, "unit", e.target.value)
+            }
+            className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 text-sm"
+          >
+            {salesUnits.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td className="px-3 py-3 whitespace-nowrap">
+          <div>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={item.rate}
+              onChange={(e) =>
+                updateItem(
+                  item.id,
+                  "rate",
+                  parseFloat(e.target.value) || 0
+                )
+              }
+              className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 text-left text-sm"
+            />
+          </div>
+        </td>
+        <td className="px-3 py-3 whitespace-nowrap">
+          <div className="flex items-center">
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={item.discount}
+              onChange={(e) =>
+                updateItem(
+                  item.id,
+                  "discount",
+                  parseFloat(e.target.value) || 0
+                )
+              }
+              className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 text-left text-sm"
+            />
+          </div>
+        </td>
+        <td className="px-2 py-3 whitespace-nowrap">
+          <div className="flex items-center">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={item.amount}
+              className="p-2 border text-black border-gray-300 rounded-md w-full bg-gray-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 text-center text-sm"
+              readOnly
+            />
+          </div>
+        </td>
+        <td className="px-1 py-2 whitespace-nowrap text-center no-print">
+          <button
+            onClick={() => removeItem(item.id)}
+            className="text-red-600 hover:text-red-900"
+            aria-label="Remove item"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
             </div>
             <button
               onClick={addItem}
